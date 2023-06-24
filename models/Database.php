@@ -1,10 +1,10 @@
 <?php
 class Database
 {
-    protected $servername = "localhost";
-    protected $username = "root";
-    protected $password = "";
-    protected $databasename = "scandiweb_test_project";
+    protected $servername = getenv('DB_HOST');
+    protected $username = getenv('DB_USERNAME');
+    protected $password = getenv('DB_PASSWORD');
+    protected $databasename = getenv('DB_NAME');
     protected $db;
 
     public function __construct()
