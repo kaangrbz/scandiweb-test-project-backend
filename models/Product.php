@@ -1,36 +1,16 @@
 <?php
-abstract class Product
+class Product
 {
     protected $sku;
     protected $name;
     protected $price;
     protected $type;
 
-    public function __construct($sku, $name, $price, $type)
+    public function __construct(string $sku, string $name, float $price, string $type)
     {
         $this->sku = $sku;
         $this->name = $name;
         $this->price = $price;
         $this->type = $type;
-    }
-
-    public function getSku()
-    {
-        return $this->sku;
-    }
-
-    public function getName()
-    {
-        return $this->name;
-    }
-
-    public function getPrice()
-    {
-        return $this->price;
-    }
-
-    public function getType()
-    {
-        return $this->type;
     }
 }
