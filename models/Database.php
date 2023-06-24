@@ -30,7 +30,7 @@ class Database
                                 LEFT JOIN furniture_details ON products.sku = furniture_details.sku;')->fetchAll();
         return $products;
     }
-
+    // TODO?: siniflara yaz
     public function getBooks()
     {
         $books = $this->db->query('SELECT products.*, weight FROM products

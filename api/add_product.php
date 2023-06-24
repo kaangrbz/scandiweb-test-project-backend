@@ -1,5 +1,19 @@
 <?php
+// TODO: tek bir endpointte topla farkli methodlarla GET PUT POST 
+/**
+    GET /products
+    PUT /products
+    GET /products/:type
+    POST /products/:sku
+    GET /products/:sku
+    DELETE /products/:sku
+    DELETE /products
 
+    error ve succes farkli olmasin
+
+    productlari g,nder'rken gene json olarak data parametresinde gonder
+    
+ */
 header("Access-Control-Allow-Origin: *");
 header('Content-Type: application/json');
 
