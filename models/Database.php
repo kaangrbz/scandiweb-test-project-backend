@@ -1,10 +1,10 @@
 <?php
 class Database
 {
-    protected $servername = getenv('DB_HOST');
-    protected $username = getenv('DB_USERNAME');
-    protected $password = getenv('DB_PASSWORD');
-    protected $databasename = getenv('DB_NAME');
+    protected $servername = "localhost";
+    protected $username = "root";
+    protected $password = "";
+    protected $databasename = "scandiweb_test_project";
     protected $db;
 
     public function __construct()
@@ -30,7 +30,7 @@ class Database
                                 LEFT JOIN furniture_details ON products.sku = furniture_details.sku;')->fetchAll();
         return $products;
     }
-    // TODO?: siniflara yaz
+    // TODO: move these functions to the their own classes
     public function getBooks()
     {
         $books = $this->db->query('SELECT products.*, weight FROM products
