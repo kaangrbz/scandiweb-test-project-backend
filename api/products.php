@@ -8,10 +8,30 @@ include_once '../models/Database.php';
 include_once '../models/DVD.php';
 include_once '../models/Book.php';
 include_once '../models/Furniture.php';
+include_once '../models/Product.php';
 
 $db = new Database();
 $connection = $db->getConnection();
 $method = $_SERVER["REQUEST_METHOD"];
+
+try {
+    $data = json_decode(file_get_contents('php://input'), true);
+} catch (\Throwable $th) {
+
+    echo json_encode(array(
+        'success' => false,
+        'code' => 'bad_request',
+        'message' => 'Bad request. JSON'
+    ));
+    return;
+}
+
+/**
+    ** TODO: GET method handling, return bad request
+    ** TODO: POST method handling, return all products
+    *! TODO: [?] PUT method handling, add product
+    ** TODO: DELETE method handling, delete product(s)
+*/
 
 switch (strtoupper($method)) {
     case 'GET':
@@ -24,19 +44,18 @@ switch (strtoupper($method)) {
         return;
 
     case 'POST':
-
-        $data = json_encode([]);
-
         try {
-            $data = $db->getAllProducts();
+            $products = Product::getAllProducts($connection);
         } catch (\Throwable $th) {
-            $data = json_encode([]);
-            
+
+            print_r($th);
+
             echo json_encode(array(
                 'success' => false,
                 'code' => 'get_product',
                 'message' => 'An error was occured while getting products',
-                'data' => $data
+                'error_message' => $th->getMessage(),
+                'data' => array()
             ));
             return;
         }
@@ -45,7 +64,7 @@ switch (strtoupper($method)) {
             'success' => true,
             'code' => 'success',
             'message' => 'Success',
-            'data' => $data
+            'data' => $products
         ));
 
         break;
@@ -53,7 +72,7 @@ switch (strtoupper($method)) {
     case 'PUT':
 
         // Validate input data
-        if (!isset($_POST['sku'], $_POST['name'], $_POST['price'], $_POST['type'])) {
+        if (!isset($data['sku'], $data['name'], $data['price'], $data['type'])) {
             $response_data = array(
                 'error' => true,
                 'code' => "null_value",
@@ -65,10 +84,10 @@ switch (strtoupper($method)) {
             return;
         }
 
-        $sku = $_POST['sku'];
-        $name = $_POST['name'];
-        $price = filter_input(INPUT_POST, 'price', FILTER_VALIDATE_FLOAT);
-        $type = $_POST['type'];
+        $sku = $data['sku'];
+        $name = $data['name'];
+        $price = $data['price'];
+        $type = $data['type'];
 
         if (!$price) {
             $response_data = array(
@@ -98,7 +117,7 @@ switch (strtoupper($method)) {
         // Create object based on product type
         switch ($type) {
             case 'dvd':
-                if (!isset($_POST['size'])) {
+                if (!isset($data['size'])) {
                     $response_data = array(
                         'error' => true,
                         'code' => 'null_attribute',
@@ -110,13 +129,13 @@ switch (strtoupper($method)) {
                     return;
                 }
 
-                $size = $_POST['size'];
+                $size = $data['size'];
                 $obj = new DVD($sku, $name, $price, $type, $size);
                 break;
 
             case 'book':
 
-                if (!isset($_POST['weight'])) {
+                if (!isset($data['weight'])) {
                     $response_data = array(
                         'error' => true,
                         'code' => 'null_attribute',
@@ -127,13 +146,13 @@ switch (strtoupper($method)) {
                     echo json_encode($response_data);
                     return;
                 }
-                $weight = $_POST['weight'];
+                $weight = $data['weight'];
                 $obj = new Book($sku, $name, $price, $type, $weight);
                 break;
 
             case 'furniture':
 
-                if (!isset($_POST['width'], $_POST['height'], $_POST['length'])) {
+                if (!isset($data['width'], $data['height'], $data['length'])) {
                     $response_data = array(
                         'error' => true,
                         'code' => 'null_attribute',
@@ -145,9 +164,9 @@ switch (strtoupper($method)) {
                     return;
                 }
 
-                $width = $_POST['width'];
-                $height = $_POST['height'];
-                $length = $_POST['length'];
+                $width = $data['width'];
+                $height = $data['height'];
+                $length = $data['length'];
                 $obj = new Furniture($sku, $name, $price, $type, $width, $height, $length);
                 break;
 
@@ -164,7 +183,7 @@ switch (strtoupper($method)) {
         }
 
         // Save object to database
-        $result = $obj->save($db);
+        $result = $obj->save($connection);
 
         if ($result == 1) {
             http_response_code(201);
@@ -201,10 +220,11 @@ switch (strtoupper($method)) {
         break;
 
     case 'DELETE':
-        if (!isset($_DELETE['skus'])) {
+
+        if (!isset($data['skus'])) {
 
             $response_data = array(
-                'error' => true,
+                'success' => false,
                 'code' => 'null_data',
                 'message' => 'Missing input data. Please select some products',
             );
@@ -213,25 +233,22 @@ switch (strtoupper($method)) {
             echo json_encode($response_data);
             return;
         }
-        
+
+        try {
+            Product::deleteProducts($data['skus'], $connection);
+        } catch (\Throwable $th) {
+            throw $th;
+        }
+
         http_response_code(200);
         echo json_encode(array(
-            'error' => true,
-            'code' => 'null_data',
-            'message' => 'Missing input data. Please select some products',
+            'success' => true,
+            'code' => 'success',
+            'message' => 'Successfuly deleted',
         ));
-        
+
         return;
 
-        break;
     default:
-        $response_data = array(
-            'error' => true,
-            'code' => 'unsupported_method',
-            'message' => 'The requested HTTP method is not supported',
-        );
-
-        http_response_code(405);
-        echo json_encode($response_data);
         break;
 }

@@ -23,13 +23,12 @@ class Furniture extends Product
         $this->length = $length;
     }
 
-    public function save($db)
+    public function save(PDO $connection)
     {
         try {
-
-            $connection = $db->getConnection();
             $query = "INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?); INSERT INTO furniture_details (sku, width, height, length) VALUES (?, ?, ?, ?);";
             $stmt = $connection->prepare($query);
+
             if (!$stmt) {
                 // Handle errors
             }
@@ -40,5 +39,10 @@ class Furniture extends Product
         } catch (\Throwable $th) {
             return $th->getCode();
         }
+    }
+
+    public function getFurnitures(PDO $connection)
+    {
+        return $connection->query('SELECT products.*, width, height, length FROM products INNER JOIN furniture_details ON products.sku = furniture_details.sku;')->fetchAll();
     }
 }

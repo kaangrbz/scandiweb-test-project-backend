@@ -1,6 +1,6 @@
 <?php
 
-include_once 'Product.php';  
+include_once 'Product.php';
 
 class Book extends Product
 {
@@ -13,22 +13,25 @@ class Book extends Product
         $this->weight = $weight;
     }
 
-    public function save($db) {
+    public function save(PDO $connection)
+    {
         try {
-            
-            $connection = $db->getConnection();
             $query = "INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?); INSERT INTO book_details (sku, weight) VALUES (?, ?);";
             $stmt = $connection->prepare($query);
+
             if (!$stmt) {
                 // Handle errors
             }
 
             $parameters = array($this->sku, $this->type, $this->name, $this->price, $this->sku, $this->weight);
-
             return $stmt->execute($parameters);
-
         } catch (\Throwable $th) {
             return $th->getCode();
         }
+    }
+
+    public function getBooks(PDO $connection)
+    {
+        return $connection->query('SELECT products.*, weight FROM products INNER JOIN book_details ON products.sku = book_details.sku;')->fetchAll();
     }
 }
