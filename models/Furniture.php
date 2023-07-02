@@ -26,17 +26,17 @@ class Furniture extends Product
     public function save(PDO $connection)
     {
         try {
-            $query = "INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?); INSERT INTO furniture_details (sku, width, height, length) VALUES (?, ?, ?, ?);";
-            $stmt = $connection->prepare($query);
+            $connection->beginTransaction();
 
-            if (!$stmt) {
-                // Handle errors
-            }
+            $query1 = $connection->prepare('INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?)');
+            $query2 = $connection->prepare('INSERT INTO furniture_details (sku, width, height, length) VALUES (?, ?, ?, ?)');
 
-            $parameters = array($this->sku, $this->type, $this->name, $this->price, $this->sku, $this->width, $this->height, $this->length);
+            $query1->execute([$this->sku, $this->type, $this->name, $this->price]);
+            $query2->execute([$this->sku, $this->width, $this->height, $this->length]);
 
-            return $stmt->execute($parameters);
+            $connection->commit();
         } catch (\Throwable $th) {
+            $connection->rollback();
             return $th->getCode();
         }
     }

@@ -15,16 +15,17 @@ class DVD extends Product
     public function save(PDO $connection)
     {
         try {
-            $query = "INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?); INSERT INTO dvd_details (sku, size) VALUES (?, ?);";
-            $stmt = $connection->prepare($query);
+            $connection->beginTransaction();
             
-            if (!$stmt) {
-                // Handle errors
-            }
+            $query1 = $connection->prepare('INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?)');
+            $query2 = $connection->prepare('INSERT INTO dvd_details (sku, size) VALUES (?, ?)');
 
-            $parameters = array($this->sku, $this->type, $this->name, $this->price, $this->sku, $this->size);
-            return $stmt->execute($parameters);
+            $query1->execute([$this->sku, $this->type, $this->name, $this->price]);
+            $query2->execute([$this->sku, $this->size]);
+
+            $connection->commit();
         } catch (\Throwable $th) {
+            $connection->rollback();
             return $th->getCode();
         }
     }

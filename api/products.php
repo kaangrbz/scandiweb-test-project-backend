@@ -19,7 +19,7 @@ try {
 } catch (\Throwable $th) {
 
     echo json_encode(array(
-        'success' => false,
+        'status' => false,
         'code' => 'bad_request',
         'message' => 'Bad request. JSON'
     ));
@@ -27,17 +27,17 @@ try {
 }
 
 /**
-    ** TODO: GET method handling, return bad request
-    ** TODO: POST method handling, return all products
-    *! TODO: [?] PUT method handling, add product
-    ** TODO: DELETE method handling, delete product(s)
-*/
+ ** TODO: GET method handling, return bad request
+ ** TODO: POST method handling, return all products
+ *! TODO: [?] PUT method handling, add product
+ ** TODO: DELETE method handling, delete product(s)
+ */
 
 switch (strtoupper($method)) {
     case 'GET':
 
         echo json_encode(array(
-            'success' => false,
+            'status' => false,
             'code' => 'bad_request',
             'message' => 'Bad request. type parameter not found'
         ));
@@ -51,7 +51,7 @@ switch (strtoupper($method)) {
             print_r($th);
 
             echo json_encode(array(
-                'success' => false,
+                'status' => false,
                 'code' => 'get_product',
                 'message' => 'An error was occured while getting products',
                 'error_message' => $th->getMessage(),
@@ -61,7 +61,7 @@ switch (strtoupper($method)) {
         }
 
         echo json_encode(array(
-            'success' => true,
+            'status' => true,
             'code' => 'success',
             'message' => 'Success',
             'data' => $products
@@ -72,11 +72,24 @@ switch (strtoupper($method)) {
     case 'PUT':
 
         // Validate input data
-        if (!isset($data['sku'], $data['name'], $data['price'], $data['type'])) {
+        if (!isset($data['sku'], $data['name'], $data['type'])) {
             $response_data = array(
-                'error' => true,
+                'status' => false,
                 'code' => "null_value",
                 'message' => "Please enter all values",
+            );
+
+            http_response_code(400);
+            echo json_encode($response_data);
+            return;
+        }
+
+        // Validate price data
+        if (!isset($data['price']) || !is_numeric($data['price']) || !floatval($data['price']) < 0) {
+            $response_data = array(
+                'status' => false,
+                'code' => "invalid_price",
+                'message' => "Please enter a valid price",
             );
 
             http_response_code(400);
@@ -89,22 +102,10 @@ switch (strtoupper($method)) {
         $price = $data['price'];
         $type = $data['type'];
 
-        if (!$price) {
-            $response_data = array(
-                'error' => true,
-                'code' => "invalid_price",
-                'message' => "Please enter a valid price",
-            );
-
-            http_response_code(400);
-            echo json_encode($response_data);
-            return;
-        }
-
         $max_sku_length = 50; // Set max length for SKU
         if (strlen($sku) > $max_sku_length) {
             $response_data = array(
-                'error' => true,
+                'status' => false,
                 'code' => "invalid_sku",
                 'message' => "SKU must be less than or equal to $max_sku_length characters",
             );
@@ -119,7 +120,7 @@ switch (strtoupper($method)) {
             case 'dvd':
                 if (!isset($data['size'])) {
                     $response_data = array(
-                        'error' => true,
+                        'status' => false,
                         'code' => 'null_attribute',
                         'message' => 'Please enter the size of the DVD',
                     );
@@ -137,7 +138,7 @@ switch (strtoupper($method)) {
 
                 if (!isset($data['weight'])) {
                     $response_data = array(
-                        'error' => true,
+                        'status' => false,
                         'code' => 'null_attribute',
                         'message' => 'Please enter the weight of the book',
                     );
@@ -154,7 +155,7 @@ switch (strtoupper($method)) {
 
                 if (!isset($data['width'], $data['height'], $data['length'])) {
                     $response_data = array(
-                        'error' => true,
+                        'status' => false,
                         'code' => 'null_attribute',
                         'message' => 'Please enter the dimensions of the furniture',
                     );
@@ -172,7 +173,7 @@ switch (strtoupper($method)) {
 
             default:
                 $response_data = array(
-                    'error' => true,
+                    'status' => false,
                     'code' => "invalid_type",
                     'message' => "Please select a valid product type",
                 );
@@ -190,7 +191,7 @@ switch (strtoupper($method)) {
 
             // Generate a JSON response indicating success
             $response_data = array(
-                'success' => true,
+                'status' => true,
                 'code' => "success",
                 'message' => "Product successfully created",
             );
@@ -198,7 +199,7 @@ switch (strtoupper($method)) {
             echo json_encode($response_data);
         } else if ($result == 23000) {
             $response_data = array(
-                'error' => true,
+                'status' => false,
                 'code' => 'duplicate',
                 'message' => 'This product already exists',
             );
@@ -207,7 +208,7 @@ switch (strtoupper($method)) {
             echo json_encode($response_data);
         } else {
             $response_data = array(
-                'error' => true,
+                'status' => false,
                 'code' => 'unknown_error',
                 'message' => 'An unknown error occurred',
             );
@@ -224,7 +225,7 @@ switch (strtoupper($method)) {
         if (!isset($data['skus'])) {
 
             $response_data = array(
-                'success' => false,
+                'status' => false,
                 'code' => 'null_data',
                 'message' => 'Missing input data. Please select some products',
             );
@@ -235,14 +236,32 @@ switch (strtoupper($method)) {
         }
 
         try {
-            Product::deleteProducts($data['skus'], $connection);
+            if (is_array($data['skus']) && count($data['skus']) > 0) {
+                Product::deleteProducts(join(',', $data['skus']), $connection);
+            } else {
+                http_response_code(400);
+                echo json_encode(array(
+                    'status' => false,
+                    'code' => 'bad_request',
+                    'message' => 'You must select at least one product for delete',
+                ));
+                return;
+            }
         } catch (\Throwable $th) {
-            throw $th;
+
+            http_response_code(500);
+            echo json_encode(array(
+                'status' => false,
+                'code' => 'interval_error',
+                'message' => 'There is an interval error occured while mass delete.',
+            ));
+
+            return;
         }
 
         http_response_code(200);
         echo json_encode(array(
-            'success' => true,
+            'status' => true,
             'code' => 'success',
             'message' => 'Successfuly deleted',
         ));

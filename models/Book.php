@@ -16,16 +16,17 @@ class Book extends Product
     public function save(PDO $connection)
     {
         try {
-            $query = "INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?); INSERT INTO book_details (sku, weight) VALUES (?, ?);";
-            $stmt = $connection->prepare($query);
+            $connection->beginTransaction();
+            
+            $query1 = $connection->prepare('INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?)');
+            $query2 = $connection->prepare('INSERT INTO book_details (sku, weight) VALUES (?, ?)');
 
-            if (!$stmt) {
-                // Handle errors
-            }
+            $query1->execute([$this->sku, $this->type, $this->name, $this->price]);
+            $query2->execute([$this->sku, $this->weight]);
 
-            $parameters = array($this->sku, $this->type, $this->name, $this->price, $this->sku, $this->weight);
-            return $stmt->execute($parameters);
+            $connection->commit();
         } catch (\Throwable $th) {
+            $connection->rollback();
             return $th->getCode();
         }
     }
