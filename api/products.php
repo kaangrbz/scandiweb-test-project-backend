@@ -5,17 +5,17 @@ header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header('Content-Type: application/json');
 
 include_once '../models/Database.php';
-include_once '../models/DVD.php';
+include_once '../models/Dvd.php';
 include_once '../models/Book.php';
 include_once '../models/Furniture.php';
 include_once '../models/Product.php';
 
 $db = new Database();
 $connection = $db->getConnection();
-$method = $_SERVER["REQUEST_METHOD"];
+$requestMethod = $_SERVER["REQUEST_METHOD"];
 
 try {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $requestData = json_decode(file_get_contents('php://input'), true);
 } catch (\Throwable $th) {
 
     echo json_encode(array(
@@ -33,7 +33,7 @@ try {
  ** TODO: DELETE method handling, delete product(s)
  */
 
-switch (strtoupper($method)) {
+switch (strtoupper($requestMethod)) {
     case 'GET':
 
         echo json_encode(array(
@@ -47,9 +47,6 @@ switch (strtoupper($method)) {
         try {
             $products = Product::getAllProducts($connection);
         } catch (\Throwable $th) {
-
-            print_r($th);
-
             echo json_encode(array(
                 'status' => false,
                 'code' => 'get_product',
@@ -72,114 +69,114 @@ switch (strtoupper($method)) {
     case 'PUT':
 
         // Validate input data
-        if (!isset($data['sku'], $data['name'], $data['type'])) {
-            $response_data = array(
+        if (!isset($requestData['sku'], $requestData['name'], $requestData['type'])) {
+            $responseData = array(
                 'status' => false,
                 'code' => "null_value",
                 'message' => "Please enter all values",
             );
 
             http_response_code(400);
-            echo json_encode($response_data);
+            echo json_encode($responseData);
             return;
         }
 
         // Validate price data
-        if (!isset($data['price']) || !is_numeric($data['price']) || !floatval($data['price']) < 0) {
-            $response_data = array(
+        if (!isset($requestData['price']) || !is_numeric($requestData['price']) || floatval($requestData['price']) < 0) {
+            $responseData = array(
                 'status' => false,
                 'code' => "invalid_price",
                 'message' => "Please enter a valid price",
             );
 
             http_response_code(400);
-            echo json_encode($response_data);
+            echo json_encode($responseData);
             return;
         }
 
-        $sku = $data['sku'];
-        $name = $data['name'];
-        $price = $data['price'];
-        $type = $data['type'];
+        $sku = $requestData['sku'];
+        $name = $requestData['name'];
+        $price = $requestData['price'];
+        $type = $requestData['type'];
 
         $max_sku_length = 50; // Set max length for SKU
         if (strlen($sku) > $max_sku_length) {
-            $response_data = array(
+            $responseData = array(
                 'status' => false,
                 'code' => "invalid_sku",
                 'message' => "SKU must be less than or equal to $max_sku_length characters",
             );
 
             http_response_code(400);
-            echo json_encode($response_data);
+            echo json_encode($responseData);
             return;
         }
 
         // Create object based on product type
         switch ($type) {
             case 'dvd':
-                if (!isset($data['size'])) {
-                    $response_data = array(
+                if (!isset($requestData['size'])) {
+                    $responseData = array(
                         'status' => false,
                         'code' => 'null_attribute',
                         'message' => 'Please enter the size of the DVD',
                     );
 
                     http_response_code(400);
-                    echo json_encode($response_data);
+                    echo json_encode($responseData);
                     return;
                 }
 
-                $size = $data['size'];
+                $size = $requestData['size'];
                 $obj = new DVD($sku, $name, $price, $type, $size);
                 break;
 
             case 'book':
 
-                if (!isset($data['weight'])) {
-                    $response_data = array(
+                if (!isset($requestData['weight'])) {
+                    $responseData = array(
                         'status' => false,
                         'code' => 'null_attribute',
                         'message' => 'Please enter the weight of the book',
                     );
 
                     http_response_code(400);
-                    echo json_encode($response_data);
+                    echo json_encode($responseData);
                     return;
                 }
-                $weight = $data['weight'];
+                $weight = $requestData['weight'];
                 $obj = new Book($sku, $name, $price, $type, $weight);
                 break;
 
             case 'furniture':
 
-                if (!isset($data['width'], $data['height'], $data['length'])) {
-                    $response_data = array(
+                if (!isset($requestData['width'], $requestData['height'], $requestData['length'])) {
+                    $responseData = array(
                         'status' => false,
                         'code' => 'null_attribute',
                         'message' => 'Please enter the dimensions of the furniture',
                     );
 
                     http_response_code(400);
-                    echo json_encode($response_data);
+                    echo json_encode($responseData);
                     return;
                 }
 
-                $width = $data['width'];
-                $height = $data['height'];
-                $length = $data['length'];
+                $width = $requestData['width'];
+                $height = $requestData['height'];
+                $length = $requestData['length'];
                 $obj = new Furniture($sku, $name, $price, $type, $width, $height, $length);
                 break;
 
             default:
-                $response_data = array(
+                $responseData = array(
                     'status' => false,
                     'code' => "invalid_type",
                     'message' => "Please select a valid product type",
                 );
 
                 http_response_code(400);
-                echo json_encode($response_data);
+                echo json_encode($responseData);
                 return;
         }
 
@@ -190,31 +187,31 @@ switch (strtoupper($method)) {
             http_response_code(201);
 
             // Generate a JSON response indicating success
-            $response_data = array(
+            $responseData = array(
                 'status' => true,
                 'code' => "success",
                 'message' => "Product successfully created",
             );
 
-            echo json_encode($response_data);
+            echo json_encode($responseData);
         } else if ($result == 23000) {
-            $response_data = array(
+            $responseData = array(
                 'status' => false,
                 'code' => 'duplicate',
                 'message' => 'This product already exists',
             );
 
             http_response_code(409);
-            echo json_encode($response_data);
+            echo json_encode($responseData);
         } else {
-            $response_data = array(
+            $responseData = array(
                 'status' => false,
                 'code' => 'unknown_error',
                 'message' => 'An unknown error occurred',
             );
 
             http_response_code(500);
-            echo json_encode($response_data);
+            echo json_encode($responseData);
         }
 
 
@@ -222,22 +219,22 @@ switch (strtoupper($method)) {
 
     case 'DELETE':
 
-        if (!isset($data['skus'])) {
+        if (!isset($requestData['skus'])) {
 
-            $response_data = array(
+            $responseData = array(
                 'status' => false,
                 'code' => 'null_data',
                 'message' => 'Missing input data. Please select some products',
             );
 
             http_response_code(400);
-            echo json_encode($response_data);
+            echo json_encode($responseData);
             return;
         }
 
         try {
-            if (is_array($data['skus']) && count($data['skus']) > 0) {
-                Product::deleteProducts(join(',', $data['skus']), $connection);
+            if (is_array($requestData['skus']) && count($requestData['skus']) > 0) {
+                Product::deleteProducts(join(',', $requestData['skus']), $connection);
             } else {
                 http_response_code(400);
                 echo json_encode(array(
