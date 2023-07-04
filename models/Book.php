@@ -25,6 +25,7 @@ class Book extends Product
             $query2->execute([$this->sku, $this->weight]);
 
             $connection->commit();
+            return 1;
         } catch (\Throwable $th) {
             $connection->rollback();
             return $th->getCode();

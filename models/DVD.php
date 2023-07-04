@@ -24,6 +24,7 @@ class DVD extends Product
             $query2->execute([$this->sku, $this->size]);
 
             $connection->commit();
+            return 1;
         } catch (\Throwable $th) {
             $connection->rollback();
             return $th->getCode();
