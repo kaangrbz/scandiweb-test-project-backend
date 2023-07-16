@@ -5,13 +5,13 @@ class Database
     protected $username = "root";
     protected $password = "Kaan_Amazon.1471";
     protected $databasename = "database";
-    protected $db;
+    protected $connection;
 
     public function __construct()
     {
         try {
-            $this->db = new PDO("mysql:host=$this->servername;dbname=$this->databasename", $this->username, $this->password);
-            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->connection = new PDO("mysql:host=$this->servername;dbname=$this->databasename", $this->username, $this->password);
+            $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
             echo "Connection failed: " . $e->getMessage();
         }
@@ -19,6 +19,6 @@ class Database
 
     public function getConnection()
     {
-        return $this->db;
+        return $this->connection;
     }
 }
