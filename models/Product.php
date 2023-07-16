@@ -1,4 +1,7 @@
 <?php
+
+include_once "Database.php";
+
 class Product
 {
     protected $sku;
@@ -28,5 +31,10 @@ class Product
         $query = "DELETE FROM products WHERE sku in ($skus)";
         $result = $db->query($query)->execute();
         return $result;
+    }
+
+    public function save (PDO $db) {
+        $query = $db->prepare('INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?)');
+        $query->execute([$this->sku, $this->type, $this->name, $this->price]);
     }
 }

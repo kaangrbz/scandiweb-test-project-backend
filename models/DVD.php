@@ -17,13 +17,13 @@ class DVD extends Product
         try {
             $connection->beginTransaction();
             
-            $query1 = $connection->prepare('INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?)');
-            $query2 = $connection->prepare('INSERT INTO dvd_details (sku, size) VALUES (?, ?)');
+            parent::save($connection);
 
-            $query1->execute([$this->sku, $this->type, $this->name, $this->price]);
-            $query2->execute([$this->sku, $this->size]);
+            $query = $connection->prepare('INSERT INTO dvd_details (sku, size) VALUES (?, ?)');
+            $query->execute([$this->sku, $this->size]);
 
             $connection->commit();
+            
             return 1;
         } catch (\Throwable $th) {
             $connection->rollback();

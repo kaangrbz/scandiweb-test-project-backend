@@ -27,12 +27,11 @@ class Furniture extends Product
     {
         try {
             $connection->beginTransaction();
-
-            $query1 = $connection->prepare('INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?)');
-            $query2 = $connection->prepare('INSERT INTO furniture_details (sku, width, height, length) VALUES (?, ?, ?, ?)');
-
-            $query1->execute([$this->sku, $this->type, $this->name, $this->price]);
-            $query2->execute([$this->sku, $this->width, $this->height, $this->length]);
+            
+            parent::save($connection);
+            
+            $query = $connection->prepare('INSERT INTO furniture_details (sku, width, height, length) VALUES (?, ?, ?, ?)');
+            $query->execute([$this->sku, $this->width, $this->height, $this->length]);
 
             $connection->commit();
             return 1;

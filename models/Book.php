@@ -18,11 +18,10 @@ class Book extends Product
         try {
             $connection->beginTransaction();
             
-            $query1 = $connection->prepare('INSERT INTO products (sku, type, name, price) VALUES (?, ?, ?, ?)');
-            $query2 = $connection->prepare('INSERT INTO book_details (sku, weight) VALUES (?, ?)');
+            parent::save($connection);
 
-            $query1->execute([$this->sku, $this->type, $this->name, $this->price]);
-            $query2->execute([$this->sku, $this->weight]);
+            $query = $connection->prepare('INSERT INTO book_details (sku, weight) VALUES (?, ?)');
+            $query->execute([$this->sku, $this->weight]);
 
             $connection->commit();
             return 1;
