@@ -2,7 +2,7 @@
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 include_once '../models/Database.php';
 include_once '../models/Api.php';
@@ -11,12 +11,12 @@ include_once '../models/Product.php';
 
 try {
 
-    
     $connection = new Database();
     $connection = $connection->getConnection();
     $requestMethod = $_SERVER["REQUEST_METHOD"];
     
     $api = new Api($connection);
+
 } catch (\Throwable $th) {
     echo Helper::createErrorMessage(false, 'bad_request', $th->getMessage(), 500);
     return;
