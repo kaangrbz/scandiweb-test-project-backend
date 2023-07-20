@@ -4,6 +4,7 @@ include_once 'Dvd.php';
 include_once 'Book.php';
 include_once 'Furniture.php';
 include_once 'Product.php';
+include_once 'HttpStatusCodes.php';
 
 class Api
 {
@@ -18,9 +19,9 @@ class Api
         try {
             $products = Product::getAllProducts($this->connection);
 
-            return Helper::createErrorMessage(true, 'success', 'Success', 200, $products);
+            return Helper::createErrorMessage(true, 'success', 'Success', HttpStatusCodes::OK, $products);
         } catch (\Exception $th) {
-            return Helper::createErrorMessage(false, 'get_product', 'An error was occured while getting products', 500);
+            return Helper::createErrorMessage(false, 'get_product', 'An error was occured while getting products', HttpStatusCodes::INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -28,79 +29,28 @@ class Api
     {
         // Validate input data
         if (!isset($requestData['sku'], $requestData['name'], $requestData['type'])) {
-            return Helper::createErrorMessage(false, 'null_value', 'Please enter all values', 400);
+            return Helper::createErrorMessage(false, 'null_value', 'Please enter all values', HttpStatusCodes::BAD_REQUEST);
         }
 
         // Validate price data
         if (!isset($requestData['price']) || !is_numeric($requestData['price']) || floatval($requestData['price']) < 0) {
-            return Helper::createErrorMessage(false, 'invalid_price', 'Please enter a valid price', 400);
+            return Helper::createErrorMessage(false, 'invalid_price', 'Please enter a valid price', HttpStatusCodes::BAD_REQUEST);
         }
 
-        $sku = $requestData['sku'];
-        $name = $requestData['name'];
+        $sku = trim($requestData['sku']);
+        $name = trim($requestData['name']);
         $price = $requestData['price'];
         $type = $requestData['type'];
 
         $maxSkuLength = 50; // Set max length for SKU
         if (strlen($sku) > $maxSkuLength) {
-            return Helper::createErrorMessage(false, 'invalid_sku', "SKU must be less than or equal to $maxSkuLength characters", 400);
+            return Helper::createErrorMessage(false, 'invalid_sku', "SKU must be less than or equal to $maxSkuLength characters", HttpStatusCodes::BAD_REQUEST);
         }
 
-
         // Create object based on product type
-        switch ($type) {
-            case 'dvd':
-                if (!isset($requestData['size'])) {
-
-                    return Helper::createErrorMessage(false, 'null_attribute', 'Please enter the size of the DVD', 400);
-                }
-
-                $size = $requestData['size'];
-
-                if (!is_numeric($size) || $size < 0) {
-                    return Helper::createErrorMessage(false, 'bad_attribute', 'Please enter a size that is 0 or greater', 400);
-                }
-
-                $obj = new DVD($sku, $name, $price, $type, $size);
-                break;
-
-            case 'book':
-
-                if (!isset($requestData['weight'])) {
-                    return Helper::createErrorMessage(false, 'null_attribute', 'Please enter the weight of the book', 400);
-                }
-
-                $weight = $requestData['weight'];
-
-                if (!is_numeric($weight) || $weight < 0) {
-                    return Helper::createErrorMessage(false, 'bad_attribute', 'Please enter a weight that is 0 or greater', 400);
-                }
-
-
-                $obj = new Book($sku, $name, $price, $type, $weight);
-                break;
-
-            case 'furniture':
-
-                if (!isset($requestData['width'], $requestData['height'], $requestData['length'])) {
-                    return Helper::createErrorMessage(false, 'null_attribute', 'Please enter the dimensions of the furniture', 400);
-                }
-
-                $width = $requestData['width'];
-                $height = $requestData['height'];
-                $length = $requestData['length'];
-
-                $datas = array($width, $height, $length);
-
-                if (Helper::isAllNumber($datas) && Helper::isAllEqualOrOver($datas, 0)) {
-                    return Helper::createErrorMessage(false, 'bad_attribute', 'Please enter dimensions 0 or above 0', 400);
-                }
-
-                $obj = new Furniture($sku, $name, $price, $type, $width, $height, $length);
-                break;
-
-            default:
-                return Helper::createErrorMessage(false, 'invalid_type', 'Please select a valid product type', 400);
+        $obj = $this->createProductByType($type, $requestData);
+        if ($obj === null) {
+            return Helper::createErrorMessage(false, 'invalid_type', 'Please select a valid product type', HttpStatusCodes::BAD_REQUEST);
         }
 
         // Save object to database
@@ -109,29 +59,65 @@ class Api
         if ($result == 1) {
             return Helper::createErrorMessage(true, 'success', 'Success', 201);
         } else if ($result == 23000) {
-            return Helper::createErrorMessage(false, 'duplicate', 'This product already exists', 409);
+            return Helper::createErrorMessage(false, 'duplicate', 'This product already exists', HttpStatusCodes::CONFLICT);
         } else {
-            return Helper::createErrorMessage(false, 'unknown_error', 'An unknown error occurred', 500);
+            return Helper::createErrorMessage(false, 'unknown_error', 'An unknown error occurred', HttpStatusCodes::INTERNAL_SERVER_ERROR);
         }
     }
+
+    private function createProductByType(string $type, array $requestData)
+    {
+        $validTypes = [
+            'dvd' => ['size'],
+            'book' => ['weight'],
+            'furniture' => ['width', 'height', 'length']
+        ];
+
+        if (!isset($validTypes[$type])) {
+            return null;
+        }
+
+        $requiredAttributes = $validTypes[$type];
+        if (!$this->hasRequiredAttributes($requestData, $requiredAttributes)) {
+            return null;
+        }
+
+        switch ($type) {
+            case 'dvd':
+                return new DVD($requestData['sku'], $requestData['name'], $requestData['price'], $type, $requestData['size']);
+            case 'book':
+                return new Book($requestData['sku'], $requestData['name'], $requestData['price'], $type, $requestData['weight']);
+            case 'furniture':
+                return new Furniture($requestData['sku'], $requestData['name'], $requestData['price'], $type, $requestData['width'], $requestData['height'], $requestData['length']);
+        }
+
+        return null;
+    }
+
+    private function hasRequiredAttributes($requestData, $requiredAttributes)
+    {
+        foreach ($requiredAttributes as $attribute) {
+            if (!isset($requestData[$attribute])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     public function deleteProducts(array $skus = [])
     {
 
-        if (!isset($skus)) {
-            return Helper::createErrorMessage(false, 'null_data', 'Missing input data. Please select some products', 400);
+        if (empty($skus) || count($skus) <= 0) {
+            return Helper::createErrorMessage(false, 'null_data', 'Please select some products', HttpStatusCodes::BAD_REQUEST);
         }
 
         try {
-            if (is_array($skus) && count($skus) > 0) {
-                Product::deleteProducts(join(',', $skus), $this->connection);
-            } else {
-                return Helper::createErrorMessage(false, 'bad_request', 'You must select at least one product for delete', 400);
-            }
-
-            return Helper::createErrorMessage(true, 'success', 'Successfuly deleted', 200);
+            Product::deleteProducts(join(',', $skus), $this->connection);
+            return Helper::createErrorMessage(true, 'success', 'Successfuly deleted', HttpStatusCodes::OK);
         } catch (\Exception $th) {
-            return Helper::createErrorMessage(false, 'interval_error', 'There is an interval error occured while mass delete', 500);
+            return Helper::createErrorMessage(false, 'interval_error', 'There is an interval error occured while mass delete', HttpStatusCodes::INTERNAL_SERVER_ERROR);
         }
     }
 }

@@ -10,7 +10,7 @@ class Helper
 
         if (!isset($httpCode) || empty($httpCode)) {
             //* Teapot code
-            $httpCode = 418;
+            $httpCode = HttpStatusCodes::I_AM_A_TEAPOT;
         }
 
         http_response_code($httpCode);

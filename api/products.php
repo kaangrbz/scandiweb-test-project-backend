@@ -8,6 +8,7 @@ include_once '../models/Database.php';
 include_once '../models/Api.php';
 include_once '../models/Helper.php';
 include_once '../models/Product.php';
+include_once '../models/HttpStatusCodes.php';
 
 try {
 
@@ -18,14 +19,14 @@ try {
     $api = new Api($connection);
 
 } catch (\Throwable $th) {
-    echo Helper::createErrorMessage(false, 'bad_request', $th->getMessage(), 500);
+    echo Helper::createErrorMessage(false, 'interval_server_error', $th->getMessage(), HttpStatusCodes::INTERNAL_SERVER_ERROR);
     return;
 }
 
 try {
     $requestData = json_decode(file_get_contents('php://input'), true);
 } catch (\Throwable $th) {
-    echo Helper::createErrorMessage(false, 'bad_request', 'Bad request, incoming data is not int JSON format', 400);
+    echo Helper::createErrorMessage(false, 'bad_request', 'Bad request, incoming data is not int JSON format', HttpStatusCodes::BAD_REQUEST);
     return;
 }
 
@@ -33,7 +34,7 @@ try {
 
     switch (strtoupper($requestMethod)) {
         case 'GET':
-            echo Helper::createErrorMessage(false, 'bad_request', 'Bad request. Method is not allowed', 405);
+            echo Helper::createErrorMessage(false, 'bad_request', 'Bad request. Method is not allowed', HttpStatusCodes::METHOD_NOT_ALLOWED);
             return;
         case 'POST':
             echo $api->getProducts();
@@ -48,7 +49,5 @@ try {
             break;
     }
 } catch (\Throwable $th) {
-    echo json_encode(array(
-        'message' => $th->getMessage()
-    ));
+    echo Helper::createErrorMessage(false, 'interval_server_error',  $th->getMessage(), HttpStatusCodes::INTERNAL_SERVER_ERROR);
 }
